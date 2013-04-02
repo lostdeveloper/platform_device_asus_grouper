@@ -77,3 +77,9 @@ endif
 NEED_WORKAROUND_CORTEX_A9_745320 := true
 
 BOARD_USES_GROUPER_MODULES := true
+
+# Preload bootanimation zip into memory
+TARGET_BOOTANIMATION_PRELOAD := true
+
+# Bootanimation texture cache
+TARGET_BOOTANIMATION_TEXTURE_CACHE := true
