@@ -18,11 +18,21 @@ on init
     symlink /storage/emulated/legacy /storage/sdcard0
     symlink /mnt/shell/emulated/0 /storage/emulated/legacy
 
+    # USB OTG support
+    mkdir /mnt/media_rw/usbdisk 0700 media_rw media_rw
+    mkdir /storage/usbdisk 0700 root root
+    symlink /storage/usbdisk /mnt/usbdisk
+    symlink /mnt/usbdisk /usbdisk
+
+    EXPORT SECONDARY_STORAGE /storage/usbdisk
+
 on early-boot
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor interactive
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor interactive
+    write /sys/kernel/dyn_fsync/Dyn_fsync_active 1
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 204000
+    #write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor interactive
+    #write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor interactive
+    #write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor interactive
+    #write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor interactive
     restorecon /sys/devices/system/cpu
     restorecon /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     restorecon /sys/devices/system/cpu/cpufreq/interactive/above_hispeed_delay
@@ -42,6 +52,7 @@ on early-boot
 
 on fs
     setprop ro.crypto.umount_sd false
+    setprop ro.crypto.fuse_sdcard true
     mount_all /fstab.grouper
     restorecon /dev/block/platform/sdhci-tegra.3/by-name/PER
 
@@ -61,6 +72,9 @@ on post-fs-data
     mkdir /data/lightsensor 751 system system
     mkdir /data/calibration
     mkdir /data/amit
+
+    # btmacreader
+    mkdir /data/mac
 
     # Set indication (checked by vold) that we have finished this action
     setprop vold.post_fs_data_done 1
@@ -278,8 +292,8 @@ on boot
     chmod 0660 /sys/devices/system/cpu/cpufreq/interactive/sustain_load
 
 # Default Read Ahead value for sdcards
-    write /sys/block/mmcblk0/queue/read_ahead_kb 2048
-    write /sys/block/mmcblk1/queue/read_ahead_kb 2048
+    write /sys/block/mmcblk0/queue/read_ahead_kb 1024
+    write /sys/block/mmcblk1/queue/read_ahead_kb 1024
 
 # GPS init
     write /sys/class/gpio/export 162
@@ -386,6 +400,10 @@ service iprenew_bt-pan /system/bin/dhcpcd -n
 # virtual sdcard daemon running as media_rw (1023)
 service sdcard /system/bin/sdcard -u 1023 -g 1023 -l /data/media /mnt/shell/emulated
     class late_start
+
+service fuse_usbdisk /system/bin/sdcard -u 1023 -g 1023 -w 1023 -d /mnt/media_rw/usbdisk /storage/usbdisk
+    class late_start
+    disabled
 
 # bugreport is triggered by the VOLUME-DOWN and VOLUME-UP keys
 service bugreport /system/bin/dumpstate -d -p -B \
